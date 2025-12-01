@@ -1,0 +1,180 @@
+Project Description
+==================
+
+Jungle Library is a library for all ages. Jungle Library seeks to implement a centralized
+relational database system to streamline and structure its operational processes. The
+proposed database design will incorporate the following core entities: Person, Employee,
+Member, Book, Publisher, Author, and Payment, ensuring data consistency, integrity, and
+efficient management of library resources and transactions.
+
+A Person entity may represent either an Employee or a Member, with the possibility that
+Employee can also be Member. The system shall store the following attributes for each
+Person: Person ID, Name (First Name, Middle Name, Last Name), Address, Gender, Date
+of Birth, and Phone Number(s), where a Person may have multiple associated phone
+numbers. An Employee must be at least 18 years of age. The Person ID attribute must
+follow the format "PXXX", where X denotes a digit between 0 and 9.
+
+Each Member is issued a library card, for which details such as Card ID, Issue Date,
+Membership Level (Silver or Gold), and other relevant information are maintained. The
+library may also associate Promotions with library cards. Each Promotion is defined by a
+unique Promotion code and an accompanying description.
+
+Each Member is categorized as either Silver or Gold. For Gold Members, a Guest Log is
+maintained, capturing details such as the Gold Member's Card ID, Guest ID, Guest Name,
+Guest Address, and Guest Contact Information. Temporary IDs are assigned to individuals
+visiting as guests of a Gold Member. Each Guest ID is unique only within the scope of the
+associated Gold Member and is not globally unique across the entire system.
+
+An Employee may belong to one of three categories: Library Supervisor, Cataloging
+Manager, or Receptionist. The system records the Employment Start Date for each
+Employee. A Receptionist is required to receive training from a designated Trainer, where a
+Trainer may be either a Library Supervisor or a Cataloging Manager. Both Library
+Supervisors and Cataloging Managers are permitted to train multiple Receptionists.
+
+Details of Books, including Book ID, Book Title, and other relevant information, are
+maintained in the system. Books are classified into three categories: Cate. 1, Cate. 2, and
+Cate. 3. Each Cataloging Manager is responsible for cataloging one category per day,
+though they may work on different categories on different days. Additionally, a Person may
+leave Comments on Books, which include the Comment Time, a Rating Score (ranging
+from 1 to 5), and the Comment Content.
+
+A Publisher may publish multiple Books, whereas each Book is assumed to be published
+by a single Publisher. The system stores Publisher details, including Publisher ID, Publisher
+Name, and other relevant information (additional attributes may be defined based on
+requirements). Similarly, Author details, such as Author ID, Author Name, and other
+pertinent information, are maintained. A Book may have multiple Authors, and an Author
+may contribute to multiple Books.
+
+A Receptionist is responsible for maintaining records of Borrowing details. Each record
+includes information about the borrowed Book, Issue Date, Due Date for Return, the
+Person borrowing the book, the responsible Receptionist, and associated Payment
+Details. Borrowing records are created only when a Person borrows a Book. Payment
+Details include Payment ID, Payment Method (e.g., Cash, Debit/Credit Card), Payment
+Time, and Amount Paid.
+
+In addition, the Receptionist is responsible for managing Member Inquiries. Each inquiry is
+assigned a unique Inquiry ID and records details such as the Inquiry Time and Resolution
+Status. To monitor member satisfaction and engagement, Members may provide a Rating
+(ranging from 1 to 5) for the inquiries they have submitted.
+
+
+Project Questions
+=================
+
+1. Is the ability to model superclass/subclass relationships likely to be important in
+   the library management system like above? Why or why not?
+
+2. Can you think of 5 more rules (other than those explicitly described above) that are
+   likely to be used in the above environment? Please describe how your design would
+   be changed to satisfy your additional rules?
+
+3. Justify the use of a Relational DBMS like Oracle for this project (Successfully design
+   a relational database system and show all implementation in the final report at
+   Phase IV).
+
+
+Project Exercises
+=================
+
+Phase I. Draw an EER to accurately represent this set of requirements. This will be your
+Conceptual Design. Clearly specify any assumptions that you are making. You can use any
+tools (software) to draw the EER but must use the symbols consistent with our textbook.
+The output of Phase I is EER diagram that satisfies the project description as much as
+possible. Some constraints may not be able to be specified in EER diagram, but please
+remember to go back to check the constraints in later phases to complete them.
+
+Phase II. Logical Database Design. It has been decided to use a relational DBMS to
+implement the database. Perform the following steps.
+
+   a. Convert your Conceptual model (Phase I, feel free to change your conceptual
+      model if needed and draw EER after your modifications) to an implementation data
+      model that can be implemented in a relational DBMS like Oracle. During this
+      process you replace M-N relationships and multi-valued attributes with constructs
+      that can be implemented in the relational DBMS.
+
+   b. Document your design in Database Schema format, explain how you obtained you
+      schema. The output of Phase II is the schema of database derived from your EER
+      design. Please indicate the primary keys and foreign keys of each relation.
+
+Phase III. Now, you are ready for implementation. Use appropriate naming conventions for
+all your tables and attributes.
+
+   a. Normalize all tables to third normal form (3NF).
+
+   b. Draw a dependency diagram for each table after normalization.
+
+   c. Write SQL statements to create relational database and all other structures.
+      Primary key and foreign keys must be defined as appropriate. Also specify data type
+      and constraints for each attribute and in addition to specify the referential integrity.
+
+   d. Use the Create View statement to create the following views:
+
+      1. TopGoldMember - This view returns the First Name, Last Name and Date of
+         membership enrollment of those members who have borrowed more than 5
+         books in the past month.
+
+      2. PopularBooks - This view returns the details of the most borrowed books over
+         the past year.
+
+      3. BestRatingPublisher - This view returns the names of publishers whose books
+         all have at least a 4.0 average rating score.
+
+      4. PotentialGoldMember - This view returns the name, phone number and ID of the
+         silver members who borrowed books every month in the past year.
+
+      5. ActiveReceptionist - This view returns the names of receptionists who resolved
+         more than 5 inquiries from members in the past month.
+
+   e. Write SQL statements for the following queries:
+
+      1. List the details of all the supervisors of the library hired in the past two months.
+
+      2. Find the names of employees who are also members and the books they have
+         borrowed in the past month.
+
+      3. Find the average number of books borrowed by the top five gold members in the
+         library.
+
+      4. Find the name of the publishers and the title of the most popular book for each
+         publisher.
+
+      5. Find names of books that were not borrowed in the last 5 months.
+
+      6. Find the members who have borrowed all the books wrote by the most popular
+         author.
+
+      7. Find the Gold Member with the greatest number of guests.
+
+      8. Find the year with the maximum number of books borrowed.
+
+      9. Find the names of members who borrowed the most popular books.
+
+      10. List all the employees that have enrolled into gold membership within a month
+          of being employed.
+
+      11. Find the names of receptionists with an average rating of 4.0 from the inquiries
+          they resolved.
+
+      12. Find the names of receptionists and their trainers who resolve at least 2
+          inquiries every month in the past 3 months.
+
+      13. List the employee who trained the greatest number of receptionists.
+
+      14. List the Cataloging Managers who cataloged all categories every week in the
+          past 4 weeks.
+
+Phase IV. Document the final term project report. The report includes:
+
+   a. Problem description (Copy it from the description).
+
+   b. Project questions (Answer 3 questions listed in the project).
+
+   c. EER diagram with all assumptions (Solution for Phase II).
+
+   d. Relational Schema after normalization. All relations must be in 3NF. The relational
+      schema should include Primary key as well as foreign keys (if any) for all relations.
+      (Solution for Phase III a).
+
+   e. Dependency diagram (Solution for Phase III-b).
+
+   f. All requested SQL statements (Solution for Phase III-c, d and e).

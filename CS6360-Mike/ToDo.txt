@@ -1,0 +1,21 @@
+Things that need doing.
+
+1.  If we're going to change the relation name COMMENT to REVIEW, go back and update the implementation data model (and maybe the EER diagram) accordingly.
+
+2.  Confirm how we want to handle time and date attributes.  Preference is to make them all DATE types and ignore time of day.  If we want to do that, a few attributes names should change for readability (i.e. InquiryTime, PaymentTime).  Changes needed in both EER diagram, implementation data model, and relations table.
+
+2.  Confirm that none of the existing relations are anything less than BCNF.  Especially think about the EMPLOYEE relation, but appears to be the case.
+
+3.  Review the Relations_Table spreadsheet for correctness, especially data types and constraints.  Confirm changes from items 1,2 above.
+
+4.  Review Database_Creation script for correct order of creation with respect to the foreign keys, and given changes from items 1,2,3 above.
+
+5.  Add to Database_Creation script any necessary referential actions on foreign keys, such as ON DELETE CASCADE.
+
+6.  Add to Database_Creation script any necessary CHECK statements to enforce data type integrity rules.  e.g. employees must be 18 years old.
+
+7.  Review sql view scripts, especially any assumptions listed at top of each.
+
+8.  Review sql query scripts, especially any assumptions listed at top of each.
+
+ 
