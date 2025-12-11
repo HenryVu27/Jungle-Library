@@ -1,0 +1,950 @@
+\documentclass[11pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{setspace}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue}
+\setlist[itemize]{noitemsep, topsep=2pt}
+\setlist[enumerate]{noitemsep, topsep=2pt}
+
+% SQL code styling
+\lstdefinestyle{sql}{
+    language=SQL,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue}\bfseries,
+    stringstyle=\color{red},
+    commentstyle=\color{gray}\itshape,
+    breaklines=true,
+    showstringspaces=false,
+    frame=single,
+    backgroundcolor=\color{gray!10},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    tabsize=2
+}
+
+\title{Jungle Library Database Management System\\Term Project Report}
+\author{\textit{Team:} \underline{Mike Barron (dal436283), Henry Vu (ddv240000)}}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+%=============================================================================
+\section{Problem Description}
+%=============================================================================
+
+Jungle Library is a library for all ages. Jungle Library seeks to implement a centralized relational database system to streamline and structure its operational processes. The proposed database design will incorporate the following core entities: Person, Employee, Member, Book, Publisher, Author, and Payment, ensuring data consistency, integrity, and efficient management of library resources and transactions.
+
+A Person entity may represent either an Employee or a Member, with the possibility that Employee can also be Member. The system shall store the following attributes for each Person: Person ID, Name (First Name, Middle Name, Last Name), Address, Gender, Date of Birth, and Phone Number(s), where a Person may have multiple associated phone numbers. An Employee must be at least 18 years of age. The Person ID attribute must follow the format ``PXXX'', where X denotes a digit between 0 and 9.
+
+Each Member is issued a library card, for which details such as Card ID, Issue Date, Membership Level (Silver or Gold), and other relevant information are maintained. The library may also associate Promotions with library cards. Each Promotion is defined by a unique Promotion code and an accompanying description.
+
+Each Member is categorized as either Silver or Gold. For Gold Members, a Guest Log is maintained, capturing details such as the Gold Member's Card ID, Guest ID, Guest Name, Guest Address, and Guest Contact Information. Temporary IDs are assigned to individuals visiting as guests of a Gold Member. Each Guest ID is unique only within the scope of the associated Gold Member and is not globally unique across the entire system.
+
+An Employee may belong to one of three categories: Library Supervisor, Cataloging Manager, or Receptionist. The system records the Employment Start Date for each Employee. A Receptionist is required to receive training from a designated Trainer, where a Trainer may be either a Library Supervisor or a Cataloging Manager. Both Library Supervisors and Cataloging Managers are permitted to train multiple Receptionists.
+
+Details of Books, including Book ID, Book Title, and other relevant information, are maintained in the system. Books are classified into three categories: Cate. 1, Cate. 2, and Cate. 3. Each Cataloging Manager is responsible for cataloging one category per day, though they may work on different categories on different days. Additionally, a Person may leave Comments on Books, which include the Comment Time, a Rating Score (ranging from 1 to 5), and the Comment Content.
+
+A Publisher may publish multiple Books, whereas each Book is assumed to be published by a single Publisher. The system stores Publisher details, including Publisher ID, Publisher Name, and other relevant information (additional attributes may be defined based on requirements). Similarly, Author details, such as Author ID, Author Name, and other pertinent information, are maintained. A Book may have multiple Authors, and an Author may contribute to multiple Books.
+
+A Receptionist is responsible for maintaining records of Borrowing details. Each record includes information about the borrowed Book, Issue Date, Due Date for Return, the Person borrowing the book, the responsible Receptionist, and associated Payment Details. Borrowing records are created only when a Person borrows a Book. Payment Details include Payment ID, Payment Method (e.g., Cash, Debit/Credit Card), Payment Time, and Amount Paid.
+
+In addition, the Receptionist is responsible for managing Member Inquiries. Each inquiry is assigned a unique Inquiry ID and records details such as the Inquiry Time and Resolution Status. To monitor member satisfaction and engagement, Members may provide a Rating (ranging from 1 to 5) for the inquiries they have submitted.
+
+%=============================================================================
+\section{Project Questions}
+%=============================================================================
+
+\subsection{Question 1: Importance of Superclass/Subclass Relationships}
+
+\textbf{Question:} Is the ability to model superclass/subclass relationships likely to be important in the library management system like above? Why or why not?
+
+\textbf{Answer:} Yes --- superclass/subclass modeling is essential for this system. The project description explicitly requires several cases of specialization:
+
+\begin{enumerate}
+    \item \textbf{Person $\rightarrow$ Employee / Member:}
+    \begin{itemize}
+        \item A Person may be an Employee, a Member, or both.
+        \item This is a classic \textbf{overlapping specialization}, not mutually exclusive.
+    \end{itemize}
+
+    \item \textbf{Employee $\rightarrow$ Supervisor / Cataloging Manager / Receptionist:}
+    \begin{itemize}
+        \item A Receptionist must be trained by either a Supervisor or a Cataloging Manager.
+        \item These are \textbf{disjoint subclasses} of Employee.
+    \end{itemize}
+
+    \item \textbf{Member $\rightarrow$ Silver / Gold:}
+    \begin{itemize}
+        \item Different constraints exist (guest logging for Gold members only).
+        \item This is a \textbf{categorization structure} with differing behaviors.
+    \end{itemize}
+\end{enumerate}
+
+These distinctions affect constraints, relationship participation, and implementation rules, so modeling them cleanly using specialization improves accuracy, clarity, and later schema quality.
+
+\subsection{Question 2: Five Additional Business Rules}
+
+\textbf{Question:} Can you think of 5 more rules (other than those explicitly described above) that are likely to be used in the above environment?
+
+\textbf{Answer:} The following additional business rules have been identified:
+
+\begin{enumerate}
+    \item \textbf{A person can have multiple phone numbers, but must have at least one.}
+
+    \textit{Design Change:} For PHONE(PersonID, PhoneNumber), add a participation constraint ensuring total participation of Person in the Phone relationship.
+
+    \item \textbf{A book cannot be borrowed again while it is already checked out.}
+
+    \textit{Design Change:} Add a Boolean attribute (CheckedOut) to the BORROWED table, and implement a constraint that prevents borrowing a book that is currently checked out.
+
+    \item \textbf{Promotions apply only to members, not employees unless they are also members.}
+
+    \textit{Design Change:} Ensure that Promotion references LIBCARD.CardID, which in turn references MEMBER.MemberID (not directly to PersonID).
+
+    \item \textbf{An author who has written no books owned by the library should not appear in the database.}
+
+    \textit{Design Change:} Use total participation of Author in the WRITTENBY junction table. An Author must be linked to at least one Book.
+
+    \item \textbf{A receptionist can only resolve inquiries that were submitted by an existing Member.}
+
+    \textit{Design Change:} Ensure INQUIRY.MemberID references the MEMBER table rather than the PERSON table directly.
+\end{enumerate}
+
+\subsection{Question 3: Justification for Using a Relational DBMS}
+
+\textbf{Question:} Justify the use of a Relational DBMS like Oracle for this project.
+
+\textbf{Answer:} Using a relational DBMS is well-justified for a project of this complexity due to:
+
+\begin{enumerate}
+    \item \textbf{Need for strong data integrity enforcement.}
+
+    This database requires numerous constraints, triggers, and referential integrity rules to maintain consistency across entities such as Person, Employee, Member, Book, and their relationships.
+
+    \item \textbf{Need for complex relationships and queries.}
+
+    This database has many-to-many relationships (e.g., Author-Book, LibCard-Promotion), superclass/subclass structures (Person/Employee/Member hierarchies), and temporal queries (e.g., books borrowed in the past month, inquiries resolved in the past 3 months), which require advanced relational operators and joins.
+
+    \item \textbf{Concurrency and transaction safety is needed.}
+
+    Many common activities such as borrowing books, recording payments, and updating inquiries warrant ACID transaction handling to avoid inconsistencies. A relational DBMS ensures that concurrent operations maintain data integrity.
+\end{enumerate}
+
+%=============================================================================
+\section{EER Diagram}
+%=============================================================================
+
+% PLACEHOLDER: Insert your EER diagram here
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width=\textwidth]{eer_diagram.pdf}
+    \fbox{\parbox{0.9\textwidth}{\centering\vspace{3cm}\textbf{[EER DIAGRAM PLACEHOLDER]}\\\textit{Insert EER diagram image here}\vspace{3cm}}}
+    \caption{Enhanced Entity-Relationship Diagram for Jungle Library Database}
+    \label{fig:eer}
+\end{figure}
+
+\subsection{EER Assumptions}
+
+\begin{enumerate}
+    \item Person is a superclass with overlapping, partial specialization into Employee and Member (a person can be both, neither, or one)
+    \item Employee is a total specialization into Manager, Supervisor, or Receptionist (every employee must be exactly one type)
+    \item Member has a total specialization into Silver or Gold (every member must be one level)
+    \item Guest is a weak entity dependent on Gold Member
+    \item A Book is published by exactly one Publisher
+    \item A Book can have multiple Authors, and an Author can write multiple Books
+    \item LibCard has a 1:1 relationship with Member
+    \item Payment has a 1:1 relationship with Borrowed record
+\end{enumerate}
+
+%=============================================================================
+\section{Relational Schema}
+%=============================================================================
+
+All relations are normalized to Third Normal Form (3NF). The relational schema includes primary keys and foreign keys for all relations.
+
+% PLACEHOLDER: Insert relational schema PDF here
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width=\textwidth]{relational_schema.pdf}
+    \fbox{\parbox{0.9\textwidth}{\centering\vspace{3cm}\textbf{[RELATIONAL SCHEMA PLACEHOLDER]}\\\textit{Insert relational schema PDF here}\vspace{3cm}}}
+    \caption{Relational Schema in 3NF with Primary and Foreign Keys}
+    \label{fig:schema}
+\end{figure}
+
+%=============================================================================
+\section{Dependency Diagrams}
+%=============================================================================
+
+% PLACEHOLDER: Insert dependency diagrams here
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width=\textwidth]{dependency_diagrams.pdf}
+    \fbox{\parbox{0.9\textwidth}{\centering\vspace{3cm}\textbf{[DEPENDENCY DIAGRAMS PLACEHOLDER]}\\\textit{Insert functional dependency diagrams PDF here}\vspace{3cm}}}
+    \caption{Functional Dependency Diagrams for All Relations}
+    \label{fig:dependencies}
+\end{figure}
+
+%=============================================================================
+\section{SQL Statements}
+%=============================================================================
+
+\subsection{Database Schema Creation (DDL)}
+
+\begin{lstlisting}[style=sql, caption={Table Creation Statements}]
+-- 1. PERSON Table (Superclass for Employee and Member)
+CREATE TABLE PERSON (
+    PersonID        VARCHAR(4) PRIMARY KEY,
+    FName           VARCHAR(50) NOT NULL,
+    MName           VARCHAR(50),
+    LName           VARCHAR(50) NOT NULL,
+    Address         VARCHAR(200),
+    Gender          VARCHAR(10) CHECK (Gender IN ('Male', 'Female', 'Other')),
+    DateOfBirth     DATE NOT NULL,
+    CONSTRAINT chk_person_id_format CHECK (PersonID ~ '^P[0-9]{3}$')
+);
+
+-- 2. PHONE Table (Multivalued attribute of Person)
+CREATE TABLE PHONE (
+    PersonID        VARCHAR(4) NOT NULL,
+    PhoneNumber     VARCHAR(20) NOT NULL,
+    PRIMARY KEY (PersonID, PhoneNumber),
+    FOREIGN KEY (PersonID) REFERENCES PERSON(PersonID)
+        ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- 3. EMPLOYEE Table
+CREATE TABLE EMPLOYEE (
+    EmployeeID      VARCHAR(4) PRIMARY KEY,
+    StartDate       DATE NOT NULL,
+    EType           VARCHAR(15) NOT NULL
+                    CHECK (EType IN ('Manager', 'Supervisor', 'Receptionist')),
+    TrainedByID     VARCHAR(4),
+    FOREIGN KEY (EmployeeID) REFERENCES PERSON(PersonID)
+        ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- 4. TRAINER Table
+CREATE TABLE TRAINER (
+    TrainerID       VARCHAR(4) PRIMARY KEY,
+    FOREIGN KEY (TrainerID) REFERENCES EMPLOYEE(EmployeeID)
+        ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- Add foreign key from EMPLOYEE.TrainedByID to TRAINER
+ALTER TABLE EMPLOYEE
+    ADD CONSTRAINT fk_employee_trainedby
+    FOREIGN KEY (TrainedByID) REFERENCES TRAINER(TrainerID)
+        ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- 5. MEMBER Table
+CREATE TABLE MEMBER (
+    MemberID        VARCHAR(4) PRIMARY KEY,
+    Level           VARCHAR(10) NOT NULL CHECK (Level IN ('Silver', 'Gold')),
+    FOREIGN KEY (MemberID) REFERENCES PERSON(PersonID)
+        ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- 6. LIBCARD Table
+CREATE TABLE LIBCARD (
+    CardID          VARCHAR(10) PRIMARY KEY,
+    MemberID        VARCHAR(4) NOT NULL UNIQUE,
+    IssueDate       DATE NOT NULL,
+    FOREIGN KEY (MemberID) REFERENCES MEMBER(MemberID)
+        ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- 7. GUEST Table (Weak entity)
+CREATE TABLE GUEST (
+    GuestOfID       VARCHAR(4) NOT NULL,
+    GuestID         VARCHAR(10) NOT NULL,
+    Name            VARCHAR(100) NOT NULL,
+    Address         VARCHAR(200),
+    ContactInfo     VARCHAR(100),
+    PRIMARY KEY (GuestOfID, GuestID),
+    FOREIGN KEY (GuestOfID) REFERENCES MEMBER(MemberID)
+        ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- 8. PROMO Table
+CREATE TABLE PROMO (
+    PromoCode       VARCHAR(20) PRIMARY KEY,
+    PromoDesc       VARCHAR(500)
+);
+
+-- 9. WITHPROMO Table (M:N relationship)
+CREATE TABLE WITHPROMO (
+    CardID          VARCHAR(10) NOT NULL,
+    PromoCode       VARCHAR(20) NOT NULL,
+    PRIMARY KEY (CardID, PromoCode),
+    FOREIGN KEY (CardID) REFERENCES LIBCARD(CardID)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (PromoCode) REFERENCES PROMO(PromoCode)
+        ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- 10. PUBLISHER Table
+CREATE TABLE PUBLISHER (
+    PublisherID     VARCHAR(10) PRIMARY KEY,
+    PublisherName   VARCHAR(100) NOT NULL
+);
+
+-- 11. AUTHOR Table
+CREATE TABLE AUTHOR (
+    AuthorID        VARCHAR(10) PRIMARY KEY,
+    AuthorName      VARCHAR(100) NOT NULL
+);
+
+-- 12. BOOK Table
+CREATE TABLE BOOK (
+    BookID          VARCHAR(10) PRIMARY KEY,
+    PublisherID     VARCHAR(10) NOT NULL,
+    BookTitle       VARCHAR(200) NOT NULL,
+    FOREIGN KEY (PublisherID) REFERENCES PUBLISHER(PublisherID)
+        ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+-- 13. WRITTENBY Table (M:N relationship)
+CREATE TABLE WRITTENBY (
+    AuthorID        VARCHAR(10) NOT NULL,
+    BookID          VARCHAR(10) NOT NULL,
+    PRIMARY KEY (AuthorID, BookID),
+    FOREIGN KEY (AuthorID) REFERENCES AUTHOR(AuthorID)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (BookID) REFERENCES BOOK(BookID)
+        ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- 14. CATALOGS Table
+CREATE TABLE CATALOGS (
+    BookID          VARCHAR(10) NOT NULL,
+    ManagerID       VARCHAR(4) NOT NULL,
+    Category        VARCHAR(10) NOT NULL
+                    CHECK (Category IN ('Cate. 1', 'Cate. 2', 'Cate. 3')),
+    CatalogDate     DATE NOT NULL,
+    PRIMARY KEY (BookID, ManagerID, CatalogDate),
+    FOREIGN KEY (BookID) REFERENCES BOOK(BookID)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (ManagerID) REFERENCES EMPLOYEE(EmployeeID)
+        ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- 15. REVIEW Table
+CREATE TABLE REVIEW (
+    BookID          VARCHAR(10) NOT NULL,
+    PersonID        VARCHAR(4) NOT NULL,
+    CommentTime     TIMESTAMP NOT NULL,
+    Content         TEXT,
+    Rating          INTEGER NOT NULL CHECK (Rating >= 1 AND Rating <= 5),
+    PRIMARY KEY (BookID, PersonID, CommentTime),
+    FOREIGN KEY (BookID) REFERENCES BOOK(BookID)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (PersonID) REFERENCES PERSON(PersonID)
+        ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- 16. BORROWED Table
+CREATE TABLE BORROWED (
+    BorrowedID      VARCHAR(10) PRIMARY KEY,
+    ReceptID        VARCHAR(4) NOT NULL,
+    BookID          VARCHAR(10) NOT NULL,
+    MemberID        VARCHAR(4) NOT NULL,
+    IssueDate       DATE NOT NULL,
+    DueDate         DATE NOT NULL,
+    FOREIGN KEY (ReceptID) REFERENCES EMPLOYEE(EmployeeID)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    FOREIGN KEY (BookID) REFERENCES BOOK(BookID)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    FOREIGN KEY (MemberID) REFERENCES MEMBER(MemberID)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT chk_due_after_issue CHECK (DueDate > IssueDate)
+);
+
+-- 17. INQUIRY Table
+CREATE TABLE INQUIRY (
+    InquiryID       VARCHAR(10) PRIMARY KEY,
+    ReceptID        VARCHAR(4) NOT NULL,
+    MemberID        VARCHAR(4) NOT NULL,
+    InquiryTime     TIMESTAMP NOT NULL,
+    Status          VARCHAR(20) NOT NULL
+                    CHECK (Status IN ('Open', 'In Progress', 'Resolved', 'Closed')),
+    Rating          INTEGER CHECK (Rating >= 1 AND Rating <= 5),
+    FOREIGN KEY (ReceptID) REFERENCES EMPLOYEE(EmployeeID)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    FOREIGN KEY (MemberID) REFERENCES MEMBER(MemberID)
+        ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- 18. PAYMENT Table
+CREATE TABLE PAYMENT (
+    PaymentID       VARCHAR(10) PRIMARY KEY,
+    BorrowedID      VARCHAR(10) NOT NULL UNIQUE,
+    PaymentTime     TIMESTAMP NOT NULL,
+    Method          VARCHAR(20) NOT NULL
+                    CHECK (Method IN ('Cash', 'Debit Card', 'Credit Card')),
+    Amount          DECIMAL(10, 2) NOT NULL CHECK (Amount >= 0),
+    FOREIGN KEY (BorrowedID) REFERENCES BORROWED(BorrowedID)
+        ON DELETE CASCADE ON UPDATE CASCADE
+);
+\end{lstlisting}
+
+\subsection{Triggers for Additional Constraints}
+
+\begin{lstlisting}[style=sql, caption={Trigger Definitions}]
+-- Trigger: Ensure Employee is at least 18 years old
+CREATE OR REPLACE FUNCTION check_employee_age()
+RETURNS TRIGGER AS $$
+DECLARE
+    dob DATE;
+BEGIN
+    SELECT DateOfBirth INTO dob FROM PERSON WHERE PersonID = NEW.EmployeeID;
+    IF AGE(NEW.StartDate, dob) < INTERVAL '18 years' THEN
+        RAISE EXCEPTION 'Employee must be at least 18 years old at start date';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_check_employee_age
+BEFORE INSERT OR UPDATE ON EMPLOYEE
+FOR EACH ROW EXECUTE FUNCTION check_employee_age();
+
+-- Trigger: Ensure Trainer is a Manager or Supervisor
+CREATE OR REPLACE FUNCTION check_trainer_type()
+RETURNS TRIGGER AS $$
+DECLARE
+    emp_type VARCHAR(15);
+BEGIN
+    SELECT EType INTO emp_type FROM EMPLOYEE WHERE EmployeeID = NEW.TrainerID;
+    IF emp_type NOT IN ('Manager', 'Supervisor') THEN
+        RAISE EXCEPTION 'Trainer must be a Manager or Supervisor';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_check_trainer_type
+BEFORE INSERT OR UPDATE ON TRAINER
+FOR EACH ROW EXECUTE FUNCTION check_trainer_type();
+
+-- Trigger: Ensure Guest is associated with a Gold Member
+CREATE OR REPLACE FUNCTION check_guest_gold_member()
+RETURNS TRIGGER AS $$
+DECLARE
+    member_level VARCHAR(10);
+BEGIN
+    SELECT Level INTO member_level FROM MEMBER WHERE MemberID = NEW.GuestOfID;
+    IF member_level != 'Gold' THEN
+        RAISE EXCEPTION 'Guests can only be associated with Gold Members';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_check_guest_gold_member
+BEFORE INSERT OR UPDATE ON GUEST
+FOR EACH ROW EXECUTE FUNCTION check_guest_gold_member();
+
+-- Trigger: Ensure ManagerID in CATALOGS references a Manager
+CREATE OR REPLACE FUNCTION check_catalogs_manager()
+RETURNS TRIGGER AS $$
+DECLARE
+    emp_type VARCHAR(15);
+BEGIN
+    SELECT EType INTO emp_type FROM EMPLOYEE WHERE EmployeeID = NEW.ManagerID;
+    IF emp_type != 'Manager' THEN
+        RAISE EXCEPTION 'Only Managers can catalog books';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_check_catalogs_manager
+BEFORE INSERT OR UPDATE ON CATALOGS
+FOR EACH ROW EXECUTE FUNCTION check_catalogs_manager();
+
+-- Trigger: Ensure ReceptID in BORROWED references a Receptionist
+CREATE OR REPLACE FUNCTION check_borrowed_receptionist()
+RETURNS TRIGGER AS $$
+DECLARE
+    emp_type VARCHAR(15);
+BEGIN
+    SELECT EType INTO emp_type FROM EMPLOYEE WHERE EmployeeID = NEW.ReceptID;
+    IF emp_type != 'Receptionist' THEN
+        RAISE EXCEPTION 'Only Receptionists can track borrowed books';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_check_borrowed_receptionist
+BEFORE INSERT OR UPDATE ON BORROWED
+FOR EACH ROW EXECUTE FUNCTION check_borrowed_receptionist();
+
+-- Trigger: Ensure ReceptID in INQUIRY references a Receptionist
+CREATE OR REPLACE FUNCTION check_inquiry_receptionist()
+RETURNS TRIGGER AS $$
+DECLARE
+    emp_type VARCHAR(15);
+BEGIN
+    SELECT EType INTO emp_type FROM EMPLOYEE WHERE EmployeeID = NEW.ReceptID;
+    IF emp_type != 'Receptionist' THEN
+        RAISE EXCEPTION 'Only Receptionists can resolve inquiries';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_check_inquiry_receptionist
+BEFORE INSERT OR UPDATE ON INQUIRY
+FOR EACH ROW EXECUTE FUNCTION check_inquiry_receptionist();
+
+-- Trigger: Ensure only Receptionists have TrainedByID
+CREATE OR REPLACE FUNCTION check_trainedby_receptionist()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.TrainedByID IS NOT NULL AND NEW.EType != 'Receptionist' THEN
+        RAISE EXCEPTION 'Only Receptionists can have a trainer';
+    END IF;
+    IF NEW.TrainedByID IS NULL AND NEW.EType = 'Receptionist' THEN
+        RAISE EXCEPTION 'Receptionists must have a trainer';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_check_trainedby_receptionist
+BEFORE INSERT OR UPDATE ON EMPLOYEE
+FOR EACH ROW EXECUTE FUNCTION check_trainedby_receptionist();
+\end{lstlisting}
+
+\subsection{View Definitions}
+
+\subsubsection{View 1: TopGoldMember}
+Gold members who borrowed more than 5 books in the past month.
+
+\begin{lstlisting}[style=sql]
+CREATE OR REPLACE VIEW TopGoldMember AS
+SELECT
+    p.FName AS FirstName,
+    p.LName AS LastName,
+    lc.IssueDate AS MembershipEnrollmentDate
+FROM MEMBER m
+JOIN PERSON p ON m.MemberID = p.PersonID
+JOIN LIBCARD lc ON m.MemberID = lc.MemberID
+WHERE m.Level = 'Gold'
+  AND m.MemberID IN (
+      SELECT b.MemberID
+      FROM BORROWED b
+      WHERE b.IssueDate >= CURRENT_DATE - INTERVAL '1 month'
+      GROUP BY b.MemberID
+      HAVING COUNT(*) > 5
+  );
+\end{lstlisting}
+
+\subsubsection{View 2: PopularBooks}
+Details of the most borrowed books over the past year.
+
+\begin{lstlisting}[style=sql]
+CREATE OR REPLACE VIEW PopularBooks AS
+SELECT
+    bk.BookID,
+    bk.BookTitle,
+    pub.PublisherName,
+    COUNT(br.BorrowedID) AS BorrowCount
+FROM BOOK bk
+JOIN PUBLISHER pub ON bk.PublisherID = pub.PublisherID
+JOIN BORROWED br ON bk.BookID = br.BookID
+WHERE br.IssueDate >= CURRENT_DATE - INTERVAL '1 year'
+GROUP BY bk.BookID, bk.BookTitle, pub.PublisherName
+HAVING COUNT(br.BorrowedID) = (
+    SELECT MAX(cnt)
+    FROM (
+        SELECT COUNT(BorrowedID) AS cnt
+        FROM BORROWED
+        WHERE IssueDate >= CURRENT_DATE - INTERVAL '1 year'
+        GROUP BY BookID
+    ) AS counts
+);
+\end{lstlisting}
+
+\subsubsection{View 3: BestRatingPublisher}
+Publishers whose all books have at least a 4.0 average rating.
+
+\begin{lstlisting}[style=sql]
+CREATE OR REPLACE VIEW BestRatingPublisher AS
+SELECT
+    pub.PublisherName
+FROM PUBLISHER pub
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM BOOK bk
+    WHERE bk.PublisherID = pub.PublisherID
+      AND (
+          SELECT AVG(c.Rating)
+          FROM REVIEW c
+          WHERE c.BookID = bk.BookID
+      ) < 4.0
+)
+AND EXISTS (
+    SELECT 1
+    FROM BOOK bk
+    JOIN REVIEW c ON bk.BookID = c.BookID
+    WHERE bk.PublisherID = pub.PublisherID
+);
+\end{lstlisting}
+
+\subsubsection{View 4: PotentialGoldMember}
+Silver members who borrowed books every month in the past year.
+
+\begin{lstlisting}[style=sql]
+CREATE OR REPLACE VIEW PotentialGoldMember AS
+SELECT
+    p.PersonID AS MemberID,
+    p.FName || ' ' || COALESCE(p.MName || ' ', '') || p.LName AS Name,
+    ph.PhoneNumber
+FROM MEMBER m
+JOIN PERSON p ON m.MemberID = p.PersonID
+LEFT JOIN PHONE ph ON p.PersonID = ph.PersonID
+WHERE m.Level = 'Silver'
+  AND (
+      SELECT COUNT(DISTINCT DATE_TRUNC('month', b.IssueDate))
+      FROM BORROWED b
+      WHERE b.MemberID = m.MemberID
+        AND b.IssueDate >= CURRENT_DATE - INTERVAL '1 year'
+  ) = 12;
+\end{lstlisting}
+
+\subsubsection{View 5: ActiveReceptionist}
+Receptionists who resolved more than 5 inquiries in the past month.
+
+\begin{lstlisting}[style=sql]
+CREATE OR REPLACE VIEW ActiveReceptionist AS
+SELECT
+    p.FName || ' ' || COALESCE(p.MName || ' ', '') || p.LName AS ReceptionistName
+FROM EMPLOYEE e
+JOIN PERSON p ON e.EmployeeID = p.PersonID
+WHERE e.EType = 'Receptionist'
+  AND (
+      SELECT COUNT(*)
+      FROM INQUIRY i
+      WHERE i.ReceptID = e.EmployeeID
+        AND i.Status IN ('Resolved', 'Closed')
+        AND i.InquiryTime >= CURRENT_DATE - INTERVAL '1 month'
+  ) > 5;
+\end{lstlisting}
+
+\subsection{Query Statements}
+
+\subsubsection{Query 1: Supervisors Hired in Past Two Months}
+
+\begin{lstlisting}[style=sql]
+SELECT
+    p.PersonID,
+    p.FName,
+    p.MName,
+    p.LName,
+    p.Address,
+    p.Gender,
+    p.DateOfBirth,
+    e.StartDate,
+    e.EType
+FROM EMPLOYEE e
+JOIN PERSON p ON e.EmployeeID = p.PersonID
+WHERE e.EType = 'Supervisor'
+  AND e.StartDate >= CURRENT_DATE - INTERVAL '2 months';
+\end{lstlisting}
+
+\subsubsection{Query 2: Employees Who Are Also Members and Their Borrowed Books}
+
+\begin{lstlisting}[style=sql]
+SELECT
+    p.FName || ' ' || COALESCE(p.MName || ' ', '') || p.LName AS EmployeeName,
+    bk.BookTitle,
+    br.IssueDate
+FROM EMPLOYEE e
+JOIN MEMBER m ON e.EmployeeID = m.MemberID
+JOIN PERSON p ON e.EmployeeID = p.PersonID
+JOIN BORROWED br ON m.MemberID = br.MemberID
+JOIN BOOK bk ON br.BookID = bk.BookID
+WHERE br.IssueDate >= CURRENT_DATE - INTERVAL '1 month';
+\end{lstlisting}
+
+\subsubsection{Query 3: Average Books Borrowed by Top Five Gold Members}
+
+\begin{lstlisting}[style=sql]
+SELECT
+    AVG(borrow_count) AS AvgBooksBorrowed
+FROM (
+    SELECT
+        m.MemberID,
+        COUNT(br.BorrowedID) AS borrow_count
+    FROM MEMBER m
+    JOIN BORROWED br ON m.MemberID = br.MemberID
+    WHERE m.Level = 'Gold'
+    GROUP BY m.MemberID
+    ORDER BY borrow_count DESC
+    LIMIT 5
+) AS top_five_gold;
+\end{lstlisting}
+
+\subsubsection{Query 4: Publishers and Their Most Popular Book}
+
+\begin{lstlisting}[style=sql]
+SELECT
+    pub.PublisherName,
+    bk.BookTitle,
+    book_counts.BorrowCount
+FROM PUBLISHER pub
+JOIN BOOK bk ON pub.PublisherID = bk.PublisherID
+JOIN (
+    SELECT
+        br.BookID,
+        COUNT(*) AS BorrowCount,
+        RANK() OVER (
+            PARTITION BY b.PublisherID
+            ORDER BY COUNT(*) DESC
+        ) AS rnk
+    FROM BORROWED br
+    JOIN BOOK b ON br.BookID = b.BookID
+    GROUP BY br.BookID, b.PublisherID
+) AS book_counts ON bk.BookID = book_counts.BookID
+WHERE book_counts.rnk = 1;
+\end{lstlisting}
+
+\subsubsection{Query 5: Books Not Borrowed in Last 5 Months}
+
+\begin{lstlisting}[style=sql]
+SELECT
+    bk.BookTitle
+FROM BOOK bk
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM BORROWED br
+    WHERE br.BookID = bk.BookID
+      AND br.IssueDate >= CURRENT_DATE - INTERVAL '5 months'
+);
+\end{lstlisting}
+
+\subsubsection{Query 6: Members Who Borrowed All Books by Most Popular Author}
+
+\begin{lstlisting}[style=sql]
+WITH MostPopularAuthor AS (
+    SELECT
+        wb.AuthorID
+    FROM WRITTENBY wb
+    JOIN BORROWED br ON wb.BookID = br.BookID
+    GROUP BY wb.AuthorID
+    ORDER BY COUNT(*) DESC
+    LIMIT 1
+),
+BooksOfMostPopularAuthor AS (
+    SELECT wb.BookID
+    FROM WRITTENBY wb
+    WHERE wb.AuthorID = (SELECT AuthorID FROM MostPopularAuthor)
+)
+SELECT
+    p.FName || ' ' || COALESCE(p.MName || ' ', '') || p.LName AS MemberName,
+    m.MemberID
+FROM MEMBER m
+JOIN PERSON p ON m.MemberID = p.PersonID
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM BooksOfMostPopularAuthor bpa
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM BORROWED br
+        WHERE br.MemberID = m.MemberID
+          AND br.BookID = bpa.BookID
+    )
+);
+\end{lstlisting}
+
+\subsubsection{Query 7: Gold Member with Greatest Number of Guests}
+
+\begin{lstlisting}[style=sql]
+SELECT
+    p.FName || ' ' || COALESCE(p.MName || ' ', '') || p.LName AS MemberName,
+    m.MemberID,
+    COUNT(g.GuestID) AS GuestCount
+FROM MEMBER m
+JOIN PERSON p ON m.MemberID = p.PersonID
+JOIN GUEST g ON m.MemberID = g.GuestOfID
+WHERE m.Level = 'Gold'
+GROUP BY m.MemberID, p.FName, p.MName, p.LName
+ORDER BY GuestCount DESC
+LIMIT 1;
+\end{lstlisting}
+
+\subsubsection{Query 8: Year with Maximum Books Borrowed}
+
+\begin{lstlisting}[style=sql]
+SELECT
+    EXTRACT(YEAR FROM IssueDate) AS Year,
+    COUNT(*) AS BooksBorrowed
+FROM BORROWED
+GROUP BY EXTRACT(YEAR FROM IssueDate)
+ORDER BY BooksBorrowed DESC
+LIMIT 1;
+\end{lstlisting}
+
+\subsubsection{Query 9: Members Who Borrowed Most Popular Books}
+
+\begin{lstlisting}[style=sql]
+WITH MostPopularBooks AS (
+    SELECT BookID
+    FROM BORROWED
+    GROUP BY BookID
+    HAVING COUNT(*) = (
+        SELECT MAX(cnt)
+        FROM (
+            SELECT COUNT(*) AS cnt
+            FROM BORROWED
+            GROUP BY BookID
+        ) AS counts
+    )
+)
+SELECT DISTINCT
+    p.FName || ' ' || COALESCE(p.MName || ' ', '') || p.LName AS MemberName
+FROM MEMBER m
+JOIN PERSON p ON m.MemberID = p.PersonID
+JOIN BORROWED br ON m.MemberID = br.MemberID
+WHERE br.BookID IN (SELECT BookID FROM MostPopularBooks);
+\end{lstlisting}
+
+\subsubsection{Query 10: Employees with Gold Membership Within Month of Employment}
+
+\begin{lstlisting}[style=sql]
+SELECT
+    p.FName || ' ' || COALESCE(p.MName || ' ', '') || p.LName AS EmployeeName,
+    e.StartDate AS EmploymentStartDate,
+    lc.IssueDate AS MembershipDate
+FROM EMPLOYEE e
+JOIN MEMBER m ON e.EmployeeID = m.MemberID
+JOIN PERSON p ON e.EmployeeID = p.PersonID
+JOIN LIBCARD lc ON m.MemberID = lc.MemberID
+WHERE m.Level = 'Gold'
+  AND lc.IssueDate <= e.StartDate + INTERVAL '1 month';
+\end{lstlisting}
+
+\subsubsection{Query 11: Receptionists with Average Rating of 4.0}
+
+\begin{lstlisting}[style=sql]
+SELECT
+    p.FName || ' ' || COALESCE(p.MName || ' ', '') || p.LName AS ReceptionistName,
+    AVG(i.Rating) AS AvgRating
+FROM EMPLOYEE e
+JOIN PERSON p ON e.EmployeeID = p.PersonID
+JOIN INQUIRY i ON e.EmployeeID = i.ReceptID
+WHERE e.EType = 'Receptionist'
+  AND i.Status IN ('Resolved', 'Closed')
+  AND i.Rating IS NOT NULL
+GROUP BY e.EmployeeID, p.FName, p.MName, p.LName
+HAVING AVG(i.Rating) >= 4.0;
+\end{lstlisting}
+
+\subsubsection{Query 12: Receptionists and Trainers with Consistent Inquiry Resolution}
+
+\begin{lstlisting}[style=sql]
+WITH MonthlyInquiryCounts AS (
+    SELECT
+        i.ReceptID,
+        DATE_TRUNC('month', i.InquiryTime) AS month,
+        COUNT(*) AS inquiry_count
+    FROM INQUIRY i
+    WHERE i.Status IN ('Resolved', 'Closed')
+      AND i.InquiryTime >= CURRENT_DATE - INTERVAL '3 months'
+    GROUP BY i.ReceptID, DATE_TRUNC('month', i.InquiryTime)
+)
+SELECT
+    p_recept.FName || ' ' || COALESCE(p_recept.MName || ' ', '')
+        || p_recept.LName AS ReceptionistName,
+    p_trainer.FName || ' ' || COALESCE(p_trainer.MName || ' ', '')
+        || p_trainer.LName AS TrainerName
+FROM EMPLOYEE e_recept
+JOIN PERSON p_recept ON e_recept.EmployeeID = p_recept.PersonID
+JOIN TRAINER t ON e_recept.TrainedByID = t.TrainerID
+JOIN EMPLOYEE e_trainer ON t.TrainerID = e_trainer.EmployeeID
+JOIN PERSON p_trainer ON e_trainer.EmployeeID = p_trainer.PersonID
+WHERE e_recept.EType = 'Receptionist'
+  AND (
+      SELECT COUNT(*)
+      FROM MonthlyInquiryCounts mic
+      WHERE mic.ReceptID = e_recept.EmployeeID
+        AND mic.inquiry_count >= 2
+  ) = 3;
+\end{lstlisting}
+
+\subsubsection{Query 13: Employee Who Trained Most Receptionists}
+
+\begin{lstlisting}[style=sql]
+SELECT
+    p.FName || ' ' || COALESCE(p.MName || ' ', '') || p.LName AS TrainerName,
+    e_trainer.EType,
+    COUNT(e_recept.EmployeeID) AS ReceptionistsTrained
+FROM TRAINER t
+JOIN EMPLOYEE e_trainer ON t.TrainerID = e_trainer.EmployeeID
+JOIN PERSON p ON e_trainer.EmployeeID = p.PersonID
+JOIN EMPLOYEE e_recept ON e_recept.TrainedByID = t.TrainerID
+WHERE e_recept.EType = 'Receptionist'
+GROUP BY t.TrainerID, p.FName, p.MName, p.LName, e_trainer.EType
+ORDER BY ReceptionistsTrained DESC
+LIMIT 1;
+\end{lstlisting}
+
+\subsubsection{Query 14: Cataloging Managers Who Cataloged All Categories Every Week}
+
+\begin{lstlisting}[style=sql]
+WITH WeeklyCategories AS (
+    SELECT
+        c.ManagerID,
+        DATE_TRUNC('week', c.CatalogDate) AS week,
+        COUNT(DISTINCT c.Category) AS categories_cataloged
+    FROM CATALOGS c
+    WHERE c.CatalogDate >= CURRENT_DATE - INTERVAL '4 weeks'
+    GROUP BY c.ManagerID, DATE_TRUNC('week', c.CatalogDate)
+)
+SELECT
+    p.FName || ' ' || COALESCE(p.MName || ' ', '') || p.LName AS ManagerName,
+    e.EmployeeID
+FROM EMPLOYEE e
+JOIN PERSON p ON e.EmployeeID = p.PersonID
+WHERE e.EType = 'Manager'
+  AND (
+      SELECT COUNT(*)
+      FROM WeeklyCategories wc
+      WHERE wc.ManagerID = e.EmployeeID
+        AND wc.categories_cataloged = 3
+  ) = 4;
+\end{lstlisting}
+
+%=============================================================================
+\section{Conclusion}
+%=============================================================================
+
+This report documents the complete design and implementation of the Jungle Library Database Management System. The database has been designed using proper database design principles including:
+
+\begin{itemize}
+    \item Comprehensive conceptual design using Enhanced Entity-Relationship modeling
+    \item Logical design with proper mapping of EER constructs to relational schema
+    \item Normalization to Third Normal Form (3NF) to eliminate redundancy
+    \item Implementation using SQL with appropriate constraints, triggers, and views
+    \item Complex queries demonstrating the power of relational query processing
+\end{itemize}
+
+The relational database successfully models all the requirements specified in the project description while maintaining data integrity, consistency, and efficient query capabilities.
+
+\end{document}

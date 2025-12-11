@@ -13,7 +13,7 @@ WHERE NOT EXISTS (
     WHERE bk.PublisherID = pub.PublisherID
       AND (
           SELECT AVG(c.Rating)
-          FROM COMMENT c
+          FROM REVIEW c
           WHERE c.BookID = bk.BookID
       ) < 4.0
 )
@@ -21,6 +21,6 @@ AND EXISTS (
     -- Ensure the publisher has at least one book with ratings
     SELECT 1
     FROM BOOK bk
-    JOIN COMMENT c ON bk.BookID = c.BookID
+    JOIN REVIEW c ON bk.BookID = c.BookID
     WHERE bk.PublisherID = pub.PublisherID
 );

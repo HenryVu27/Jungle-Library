@@ -18,3 +18,4 @@ WHERE m.Level = 'Gold'
       GROUP BY b.MemberID
       HAVING COUNT(*) > 5
   );
+
